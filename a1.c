@@ -12,7 +12,29 @@
  */
 void generate_selections(int a[], int n, int k, int b[], void *data, void (*process_selection)(int *b, int k, void *data))
 {
-    
+    if (k <= 0) {
+        return;
+    }
+    int indices[k];
+    for (int i = 0; i < k; i++) {
+        indices[i] = i;
+        b[i] = a[i];
+    }
+    while (indices[0] != n - k) {
+        process_selection(b, k, data);
+        int rightmost = k - 1;
+        while (rightmost >= 0 && indices[rightmost] == n - k + rightmost) {
+            rightmost--;
+        }
+        indices[rightmost]++;
+        for (int i = rightmost + 1; i < k; i++) {
+            indices[i] = indices[i - 1] + 1;
+        }
+        for (int i = 0; i < k; i++) {
+            b[i] = a[indices[i]];
+        }
+    }
+    process_selection(b, k, data);
 }
 
 /*
