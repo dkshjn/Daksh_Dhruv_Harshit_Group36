@@ -12,18 +12,29 @@
  */
 void generate_selections(int a[], int n, int k, int b[], void *data, void (*process_selection)(int *b, int k, void *data))
 {
-    b[0] = 2; b[1] = 1;
-    process_selection(b, 2, data);
-    b[0] = 2; b[1] = 6;
-    process_selection(b, 2, data);
-    b[0] = 2; b[1] = 5;
-    process_selection(b, 2, data);
-    b[0] = 1; b[1] = 6;
-    process_selection(b, 2, data);
-    b[0] = 1; b[1] = 5;
-    process_selection(b, 2, data);
-    b[0] = 6; b[1] = 5;
-    process_selection(b, 2, data);
+        if (k <= 0) {
+        return;
+    }
+    int indices[k];
+    for (int i = 0; i < k; i++) {
+        indices[i] = i;
+        b[i] = a[i];
+    }
+    while (indices[0] != n - k) {
+        process_selection(b, k, data);
+        int rightmost = k - 1;
+        while (rightmost >= 0 && indices[rightmost] == n - k + rightmost) {
+            rightmost--;
+        }
+        indices[rightmost]++;
+        for (int i = rightmost + 1; i < k; i++) {
+            indices[i] = indices[i - 1] + 1;
+        }
+        for (int i = 0; i < k; i++) {
+            b[i] = a[indices[i]];
+        }
+    }
+    process_selection(b, k, data);
 }
 
 /*
@@ -34,26 +45,55 @@ void generate_selections(int a[], int n, int k, int b[], void *data, void (*proc
  * The dictionary parameter is an array of words, sorted in dictionary order.
  * nwords is the number of words in this dictionary.
  */
-void generate_splits(const char *source, const char *dictionary[], int nwords, char buf[], void *data, void (*process_split)(char buf[], void *data))
-{
-    strcpy(buf, "art is toil");
-    process_split(buf, data);
-    strcpy(buf, "artist oil");
-    process_split(buf, data);
+void generate_splits(const char *source, const char *dictionary[], int nwords, char buf[], void *data, void (*process_split)(char buf[], void *data)) {
+    int source_len = strlen(source);
+
+    for (int i = 1; i <= source_len; i++) {
+        for (int j = 0; j < nwords; j++) {
+            if (strncmp(source, dictionary[j], i) == 0) {
+                generate_splits(source + i, dictionary, nwords, buf, data, process_split);
+                strncpy(buf, source, i);
+                buf[i] = '\0';
+                process_split(buf, data);
+            }
+        }
+    }
 }
 
 /*
  * Transform a[] so that it becomes the previous permutation of the elements in it.
  * If a[] is the first permutation, leave it unchanged.
  */
-void previous_permutation(int a[], int n)
-{
-    a[0] = 1;
-    a[1] = 5;
-    a[2] = 4;
-    a[3] = 6;
-    a[4] = 3;
-    a[5] = 2;
+
+//defining the swap function
+void swap(int *a, int *b) {
+    int c = *a;
+    *a = *b;
+    *b = c;
+}
+//defining the reverse function
+void reverse(int a[], int start, int end) {
+    while (start < end) {
+        swap(&a[start], &a[end]);
+        start++;
+        end--;
+    }
+}
+int previous_permutation(int a[], int n) {
+    int i = n - 2;
+    while (i >= 0 && a[i] <= a[i + 1]) {
+        i--;
+    }
+    if (i < 0) {
+        return 0; 
+    }
+    int j = n - 1;
+    while (a[j] >= a[i]) {
+        j--;
+    }
+    swap(&a[i], &a[j]);
+    reverse(a, i + 1, n - 1);
+    return 1;
 }
 
 /* Write your tests here. Use the previous assignment for reference. */
@@ -151,19 +191,19 @@ void test_splits_art(char buf[], void *data)
     }
     switch (s->index) {
     case 0:
-        if (strcmp(buf, "art is toil")) {
+        if (!strcmp(buf, "art is toil")) {
             s->err = 1;
         }
         break;
     case 1:
-        if (strcmp(buf, "artist oil")) {
+        if (!strcmp(buf, "artist oil")) {
             s->err = 1;
         }
         break;
     default:
         s->err = 1;
     }
-    ++(s->index);
+
 }
 
 BEGIN_TEST(generate_splits) {
@@ -176,7 +216,7 @@ BEGIN_TEST(generate_splits) {
         "toil"
     };
     int nwords = 5;
-    state_t s = { .index = 0, .err = 1, .first = 1 };
+    state_t s = { .index = 0, .err =1, .first = 1 };
     char buf[256];
     generate_splits(a, dict, nwords, buf, &s, test_splits_art);
     ASSERT(!s.err, "Failed on 'artistoil'.");
